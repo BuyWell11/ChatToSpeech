@@ -1,0 +1,8 @@
+emoji==2.12.1
+python-decouple==3.8
+rhvoice-wrapper==0.8.0
+rhvoice-wrapper-bin==0.5.0
+rhvoice-wrapper-data==0.5.0
+twitch-chat-irc==0.0.4
+typing_extensions==4.12.2
+wheel==0.43.0
