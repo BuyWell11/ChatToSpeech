@@ -4,10 +4,19 @@ from rhvoice_wrapper import TTS
 import queue
 import threading
 import os
+import re
 
 pathToVCL = None
 
 channelName = None
+
+
+def remove_links(message):
+    link_pattern = r'http[s]?://\S+|www\.\S+'
+    cleaned_message = re.sub(link_pattern, 'ссылка', message)
+    return cleaned_message.strip()
+
+
 
 def check_or_create_settings():
     global pathToVCL
@@ -62,8 +71,9 @@ def doSound(message):
 
 def callback(message):
     global messagesQueue
-    print(message["display-name"] + " " + message["message"])
-    messagesQueue.put(message["message"])
+    cleaned_message = remove_links(message["message"])
+    print(message["display-name"] + " " + cleaned_message)
+    messagesQueue.put(cleaned_message)
 
 
 def twitchListener():
