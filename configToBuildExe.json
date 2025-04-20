@@ -7,11 +7,11 @@
   },
   {
    "optionDest": "filenames",
-   "value": "C:/Users/Maksim/Desktop/chatToSpeach/main.py"
+   "value": "E:/chatToSpeach/main.py"
   },
   {
    "optionDest": "onefile",
-   "value": false
+   "value": true
   },
   {
    "optionDest": "console",
@@ -55,27 +55,27 @@
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/Maksim/Desktop/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper;rhvoice_wrapper/"
+   "value": "E:/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper;rhvoice_wrapper/"
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/Maksim/Desktop/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper_bin;rhvoice_wrapper_bin/"
+   "value": "E:/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper_bin;rhvoice_wrapper_bin/"
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/Maksim/Desktop/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper_bin-0.5.0.dist-info;rhvoice_wrapper_bin-0.5.0.dist-info/"
+   "value": "E:/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper_bin-0.5.0.dist-info;rhvoice_wrapper_bin-0.5.0.dist-info/"
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/Maksim/Desktop/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper_data;rhvoice_wrapper_data/"
+   "value": "E:/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper_data;rhvoice_wrapper_data/"
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/Maksim/Desktop/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper_data-0.5.0.dist-info;rhvoice_wrapper_data-0.5.0.dist-info/"
+   "value": "E:/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper_data-0.5.0.dist-info;rhvoice_wrapper_data-0.5.0.dist-info/"
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/Maksim/Desktop/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper-0.8.0.dist-info;rhvoice_wrapper-0.8.0.dist-info/"
+   "value": "E:/chatToSpeach/twitch/Lib/site-packages/rhvoice_wrapper-0.8.0.dist-info;rhvoice_wrapper-0.8.0.dist-info/"
   }
  ],
  "nonPyinstallerOptions": {

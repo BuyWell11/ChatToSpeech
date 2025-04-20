@@ -1,2 +1,0 @@
-channel-name=DeadFemboy997
-path-to-VCL=D:/VLC/vlc.exe

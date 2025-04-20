@@ -5,65 +5,91 @@ import queue
 import threading
 import os
 import re
+import json
+import sys
+from dataclasses import dataclass
 
 pathToVCL = None
-
 channelName = None
+users = None
+bans = None
 
 
-def remove_links(message):
+@dataclass
+class ChatMessage:
+    username: str
+    text: str
+
+
+def clean_massage(message):
     link_pattern = r'http[s]?://\S+|www\.\S+'
     cleaned_message = re.sub(link_pattern, 'ссылка', message)
     return cleaned_message.strip()
 
 
-
 def check_or_create_settings():
     global pathToVCL
     global channelName
-    settings_file = 'settings.txt'
+    global users
+    global bans
+    settings_file = 'settings.json'
     
     if os.path.exists(settings_file):
-        with open(settings_file, 'r') as file:
-            settings = {}
-            for line in file:
-                key, value = line.strip().split('=')
-                settings[key] = value
+        with open(settings_file, 'r', encoding='utf-8') as file:
+            settings = json.load(file)
         
-        if 'channel-name' in settings and 'path-to-VCL' in settings:
-            channelName = settings['channel-name']
-            pathToVCL = settings['path-to-VCL']
+        if 'channelName' in settings and 'pathToVCL' in settings:
+            channelName = settings['channelName']
+            pathToVCL = settings['pathToVCL']
+            users = settings['users']
+            bans = settings['bans']
             print(f'Настройки загружены из файла: channel-name={channelName}, path-to-VCL={pathToVCL}')
+            print(f'Голоса: {users}')
+            print(f'Баны: {bans}')
         else:
-            print('Файл settings.txt найден, но в нём отсутствуют необходимые параметры.')
+            print('Файл settings.json найден, но в нём отсутствуют необходимые параметры.')
             get_and_save_settings(settings_file)
     else:
-        print('Файл settings.txt не найден.')
+        print('Файл settings.json не найден.')
         get_and_save_settings(settings_file)
+
 
 def get_and_save_settings(filename):
     global pathToVCL
     global channelName
-    channelName = input('Введите channel-name: ')
-    pathToVCL = input('Введите path-to-VCL: ')
+    global users
+    global bans
+    channelName = input('Введите channelName: ')
+    pathToVCL = input('Введите pathToVCL: ')
+    users = {}
+    bans = []
     
-    with open(filename, 'w') as file:
-        file.write(f'channel-name={channelName}\n')
-        file.write(f'path-to-VCL={pathToVCL}\n')
+    settings = {
+        'channelName': channelName,
+        'pathToVCL': pathToVCL,
+        'users': {},
+        'bans': []
+    }
+    
+    with open(filename, 'w', encoding='utf-8') as file:
+        json.dump(settings, file, ensure_ascii=False, indent=4)
     
     print(f'Настройки сохранены в файл {filename}.')
 
+
 check_or_create_settings()
 
-
-messagesQueue=queue.Queue()
-
+messagesQueue = queue.Queue()
 connection = twitch_chat_irc.TwitchChatIRC()
-
 tts = TTS(threads=1)
 
+print(f'Доступные голоса {tts.voices}.')
+
+
 def doSound(message):
-    data = tts.get(message, voice='anna', format_="wav", sets=None)
+    global users
+    voice = users.get(message.username, 'anna')
+    data = tts.get(message.text, voice=voice, format_="wav", sets=None)
     aplay = sp.Popen([pathToVCL, "-vvv", "-", "--intf", "dummy", "--play-and-exit"], stdin=sp.PIPE)
     aplay._stdin_write(data)
     aplay.wait()
@@ -71,19 +97,27 @@ def doSound(message):
 
 def callback(message):
     global messagesQueue
-    cleaned_message = remove_links(message["message"])
+    global bans
+    if(message["message"][0] == '!'):
+        return
+    if(message["display-name"] in bans):
+        return
+    cleaned_message = clean_massage(message["message"])
     print(message["display-name"] + " " + cleaned_message)
-    messagesQueue.put(cleaned_message)
+    messagesQueue.put(ChatMessage(message["display-name"], cleaned_message))
 
 
 def twitchListener():
     global messagesQueue
     connection.listen(channelName, on_message=callback)
-    
-if __name__ == '__main__':
-    thread = threading.Thread(target=twitchListener)
-    thread.start()
 
-    while True:
-        if not messagesQueue.empty():
-            doSound(messagesQueue.get())
+
+if __name__ == '__main__':
+    twitch_thread = threading.Thread(target=twitchListener)
+    twitch_thread.daemon = True
+    twitch_thread.start()
+
+
+while True:
+    if not messagesQueue.empty():
+        doSound(messagesQueue.get())
