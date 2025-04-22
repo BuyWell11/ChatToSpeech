@@ -13,6 +13,7 @@ pathToVCL = None
 channelName = None
 users = None
 bans = None
+settings_file = 'settings.json'
 
 
 @dataclass
@@ -32,7 +33,7 @@ def check_or_create_settings():
     global channelName
     global users
     global bans
-    settings_file = 'settings.json'
+    global settings_file
     
     if os.path.exists(settings_file):
         with open(settings_file, 'r', encoding='utf-8') as file:
@@ -77,6 +78,26 @@ def get_and_save_settings(filename):
     print(f'Настройки сохранены в файл {filename}.')
 
 
+def save_setting():
+    global pathToVCL
+    global channelName
+    global users
+    global bans
+    global settings_file
+
+    settings = {
+        'channelName': channelName,
+        'pathToVCL': pathToVCL,
+        'users': users,
+        'bans': bans
+    }
+    
+    with open(settings_file, 'w', encoding='utf-8') as file:
+        json.dump(settings, file, ensure_ascii=False, indent=4)
+    
+    print(f'Настройки сохранены в файл {settings_file}.')
+
+
 check_or_create_settings()
 
 messagesQueue = queue.Queue()
@@ -86,7 +107,15 @@ tts = TTS(threads=1)
 print(f'Доступные голоса {tts.voices}.')
 
 
-def doSound(message):
+def command_handler(message: ChatMessage):
+    global users
+    message_word = message.text.split(' ')
+    if message_word[0] == '!voice' and message_word[1] in tts.voices:
+        users[message.username] = message_word[1]
+        save_setting()
+
+
+def doSound(message:ChatMessage):
     global users
     voice = users.get(message.username, 'anna')
     data = tts.get(message.text, voice=voice, format_="wav", sets=None)
@@ -99,6 +128,7 @@ def callback(message):
     global messagesQueue
     global bans
     if(message["message"][0] == '!'):
+        command_handler(ChatMessage(message["display-name"], message["message"]))
         return
     if(message["display-name"] in bans):
         return
