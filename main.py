@@ -110,7 +110,7 @@ print(f'Доступные голоса {tts.voices}.')
 def command_handler(message: ChatMessage):
     global users
     message_word = message.text.split(' ')
-    if message_word[0] == '!voice' and message_word[1] in tts.voices:
+    if len(message_word) == 2 and message_word[0] == '!voice' and message_word[1] in tts.voices:
         users[message.username] = message_word[1]
         save_setting()
 

@@ -18,6 +18,10 @@
    "value": true
   },
   {
+   "optionDest": "icon_file",
+   "value": "E:/chatToSpeach/icon.ico"
+  },
+  {
    "optionDest": "name",
    "value": "ChatToSpeach"
   },
