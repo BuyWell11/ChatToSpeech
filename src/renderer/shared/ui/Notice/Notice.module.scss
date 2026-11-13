@@ -1,0 +1,21 @@
+@use '../../styles' as *;
+
+.notice {
+  padding: $space-10 $space-13;
+  border: $border-width solid transparent;
+  border-radius: $radius-lg;
+  font-size: $font-size-md;
+  line-height: $line-height-normal;
+}
+
+.error {
+  border-color: $color-border-error;
+  background: $color-background-error-soft;
+  color: $color-error-strong;
+}
+
+.info {
+  border-color: $color-border-info;
+  background: $color-background-info;
+  color: $color-info-text;
+}

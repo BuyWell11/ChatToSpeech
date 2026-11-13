@@ -1,0 +1,135 @@
+@use '../../../shared/styles' as *;
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: $space-24 $space-16;
+  background:
+    radial-gradient(ellipse at 50% 5%, $color-backdrop-glow, transparent 38%),
+    $color-background;
+}
+
+.card {
+  width: min(100%, 470px);
+  @include panel($space-27, $radius-4xl);
+  box-shadow: 0 18px $space-29 $color-shadow;
+}
+
+.icon {
+  width: $space-28;
+  height: $space-28;
+  display: grid;
+  place-items: center;
+  color: $color-white;
+  background: $color-primary;
+  border-radius: $radius-3xl;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+}
+
+.eyebrow {
+  @include eyebrow;
+  margin: $space-20 0 $space-7;
+  color: $color-primary;
+}
+
+.card h1 {
+  margin: 0;
+  font-size: $font-size-3xl;
+  letter-spacing: $letter-spacing-heading;
+}
+
+.description,
+.note {
+  color: $color-text-description;
+  font-size: $font-size-base;
+  line-height: $line-height-loose;
+}
+
+.description {
+  margin: $space-9 0 $space-20;
+}
+
+.form {
+  display: grid;
+  gap: $space-14;
+
+  label {
+    display: grid;
+    gap: $space-6;
+    color: $color-text;
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+  }
+
+  input {
+    width: 100%;
+    height: $control-height-large;
+    padding: 0 $space-11;
+    border: $border-width solid $color-border-control;
+    border-radius: $radius-lg;
+    outline: none;
+    background: $color-white;
+    font-size: $font-size-base;
+  }
+
+  input:focus {
+    @include focus-ring;
+  }
+}
+
+.inputWrap {
+  display: flex;
+  align-items: center;
+  height: $control-height-large;
+  padding-left: $space-11;
+  border: $border-width solid $color-border-control;
+  border-radius: $radius-lg;
+  color: $color-text-input;
+
+  input {
+    height: $space-27;
+    border: 0;
+    box-shadow: none !important;
+  }
+
+  &:focus-within {
+    @include focus-ring;
+  }
+}
+
+.privacy {
+  margin: -$space-3 0 0;
+  color: $color-text-help;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-regular;
+  line-height: $line-height-relaxed;
+}
+
+.error {
+  padding: $space-9 $space-11;
+  border-radius: $radius-lg;
+  background: $color-background-error;
+  color: $color-error;
+  font-size: $font-size-md;
+  line-height: $line-height-normal;
+}
+
+.submit {
+  width: 100%;
+  border-radius: $radius-lg;
+}
+
+.note {
+  margin: $space-17 0 0;
+  padding-top: $space-14;
+  border-top: $border-width solid $color-border-divider;
+  font-size: $font-size-sm;
+}
+
+@media (max-width: $breakpoint-xs) {
+  .card {
+    padding: $space-20;
+  }
+}

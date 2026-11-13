@@ -1,0 +1,112 @@
+@use '../../../shared/styles' as *;
+
+.page {
+  display: grid;
+  gap: $space-17;
+}
+
+.form {
+  display: grid;
+  gap: $space-14;
+}
+
+.rangeField {
+  display: grid;
+  gap: $space-10;
+
+  span {
+    display: flex;
+    justify-content: space-between;
+    font-size: $font-size-md;
+  }
+
+  output {
+    color: $color-primary;
+    font-weight: $font-weight-bold;
+  }
+
+  small {
+    color: $color-text-caption;
+    font-size: $font-size-xs;
+    line-height: $line-height-normal;
+  }
+
+  input {
+    width: 100%;
+    accent-color: $color-primary;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-15;
+
+  > label:not(.checkField) {
+    display: grid;
+    align-content: start;
+    gap: $space-7;
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+  }
+
+  input[type="number"],
+  select,
+  textarea {
+    width: 100%;
+    min-height: $space-26;
+    padding: $space-7 $space-9;
+    border: $border-width solid $color-border-control;
+    border-radius: $radius-sm;
+    outline: none;
+    background: $color-white;
+    font-size: $font-size-sm;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: $color-primary;
+  }
+
+  textarea {
+    resize: vertical;
+    line-height: $line-height-normal;
+  }
+}
+
+.code {
+  font-family: $font-family-mono;
+}
+
+.checkField {
+  display: flex;
+  align-items: center;
+  gap: $space-7;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+
+  input {
+    accent-color: $color-primary;
+  }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-14;
+  color: $color-text-caption;
+  font-size: $font-size-xs;
+}
+
+@media (max-width: $breakpoint-sm) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer {
+    align-items: flex-start;
+    flex-direction: column-reverse;
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "noEmit": true,
+    "rootDir": "./src"
+  },
+  "include": ["src/electron/**/*.ts", "src/renderer/**/*"]
+}

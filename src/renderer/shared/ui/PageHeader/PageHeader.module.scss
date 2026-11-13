@@ -1,0 +1,19 @@
+@use '../../styles' as *;
+
+.header h1 {
+  margin: 0;
+  font-size: $font-size-display;
+  letter-spacing: $letter-spacing-tight;
+}
+
+.eyebrow {
+  margin: 0 0 $space-7;
+  @include eyebrow;
+  margin: 0 0 $space-7;
+}
+
+.description {
+  margin: $space-6 0 0;
+  color: $color-text-faint;
+  font-size: $font-size-md;
+}

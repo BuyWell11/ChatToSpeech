@@ -1,0 +1,68 @@
+{
+  "name": "govorilkaclient",
+  "version": "1.0.0",
+  "description": "Windows desktop application for reading Twitch chat aloud",
+  "main": "out/main/index.js",
+  "scripts": {
+    "app:dev": "electron-vite dev",
+    "app:start": "electron-vite preview",
+    "app:typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "app:build": "npm run app:typecheck && electron-vite build",
+    "app:package": "npm run app:build && electron-builder --win nsis"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "tmi.js": "^1.8.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "@types/node": "^25.9.1",
+    "@types/tmi.js": "^1.8.6",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "electron": "^45.3.0",
+    "electron-builder": "^26.0.0",
+    "electron-vite": "^5.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sass": "^1.89.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.govorilka.client",
+    "productName": "Govorilka",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "setup-runtime.ps1",
+        "to": "setup-runtime.ps1"
+      },
+      {
+        "from": "requirements-local.txt",
+        "to": "requirements-local.txt"
+      },
+      {
+        "from": "src/electron/main/runtime/rvc_worker.py",
+        "to": "rvc_worker.py"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "publish": null
+    }
+  }
+}

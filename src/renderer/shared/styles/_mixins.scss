@@ -1,0 +1,20 @@
+@use 'tokens' as *;
+
+@mixin panel($padding: $space-20, $radius: $radius-2xl) {
+  padding: $padding;
+  border: $border-width solid $color-border;
+  border-radius: $radius;
+  background: $color-white;
+}
+
+@mixin eyebrow {
+  color: $color-text-eyebrow;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-bold;
+  letter-spacing: $letter-spacing-widest;
+}
+
+@mixin focus-ring {
+  border-color: $color-border-focus;
+  box-shadow: 0 0 0 $focus-ring-width $color-border-focus-ring;
+}

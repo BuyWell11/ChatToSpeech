@@ -1,0 +1,18 @@
+@use '../../styles' as *;
+
+.section {
+  display: grid;
+  gap: $space-17;
+  @include panel($space-18 $space-20, $radius-2xl);
+}
+
+.header h2 {
+  margin: 0;
+  font-size: $font-size-lg;
+}
+
+.header p {
+  margin: $space-5 0 0;
+  color: $color-text-status;
+  font-size: $font-size-sm;
+}

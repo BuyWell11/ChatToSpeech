@@ -1,0 +1,98 @@
+@use '../../../shared/styles' as *;
+
+.panel {
+  @include panel($space-19 $space-20, $radius-3xl);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  @include eyebrow;
+  margin: 0 0 $space-6;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: $font-size-xl;
+}
+
+.dot {
+  width: $space-8;
+  height: $space-8;
+  margin-top: $space-6;
+  border-radius: $radius-round;
+  background: $color-icon-muted;
+}
+
+.connected {
+  background: $color-status-good;
+  box-shadow: 0 0 0 $space-3 $color-status-good-glow;
+}
+
+.error {
+  background: $color-status-error;
+  box-shadow: 0 0 0 $space-3 $color-status-error-glow;
+}
+
+.statuses {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: $space-11;
+  margin-top: $space-19;
+
+  div {
+    display: grid;
+    gap: $space-5;
+  }
+
+  span {
+    color: $color-text-status;
+    font-size: $font-size-sm;
+  }
+
+  strong {
+    overflow: hidden;
+    color: $color-text;
+    font-size: $font-size-md;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.good {
+  color: $color-status-good-text !important;
+}
+
+.message,
+.hint {
+  margin: $space-14 0 0;
+  padding: $space-9 $space-11;
+  border-radius: $radius-md;
+  background: $color-background-soft;
+  color: $color-text-soft;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-7;
+  margin-top: $space-17;
+}
+
+.hint {
+  background: $color-background-highlight;
+  color: $color-warning-text;
+}
+
+@media (max-width: $breakpoint-lg) {
+  .statuses {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

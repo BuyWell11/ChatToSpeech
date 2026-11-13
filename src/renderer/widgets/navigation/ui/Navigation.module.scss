@@ -1,0 +1,98 @@
+@use '../../../shared/styles' as *;
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: $space-21 $space-13 $space-16;
+  background: $color-white;
+  border-right: $border-width solid $color-border-soft;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: $space-10;
+  padding: 0 $space-9 $space-25;
+
+  strong,
+  small {
+    display: block;
+  }
+
+  strong {
+    font-size: $font-size-lg;
+  }
+
+  small {
+    margin-top: $space-2;
+    color: $color-text-brand-subtitle;
+    font-size: $font-size-sm;
+  }
+}
+
+.logo {
+  width: $space-26;
+  height: $space-26;
+  display: grid;
+  place-items: center;
+  color: $color-white;
+  background: $color-primary;
+  border-radius: $radius-xl;
+  font-weight: $font-weight-bold;
+}
+
+.links {
+  display: grid;
+  gap: $space-5;
+
+  button {
+    padding: $space-10 $space-11;
+    border: 0;
+    border-radius: $radius-lg;
+    background: transparent;
+    color: $color-text-subtle;
+    text-align: left;
+    font-size: $font-size-base;
+  }
+
+  button span {
+    display: inline-block;
+    width: $space-21;
+    font-size: $font-size-xl;
+  }
+
+  button:hover,
+  .active {
+    background: $color-primary-muted;
+    color: $color-primary-strong;
+  }
+}
+
+.footer {
+  margin-top: auto;
+  padding: $space-11 $space-9 0;
+  color: $color-text-footer;
+  font-size: $font-size-sm;
+}
+
+@media (max-width: $breakpoint-md) {
+  .sidebar {
+    min-height: auto;
+    padding: $space-11 $space-13;
+    border-right: 0;
+    border-bottom: $border-width solid $color-border-navigation;
+  }
+
+  .brand {
+    padding: 0 $space-7 $space-11;
+  }
+
+  .links {
+    display: flex;
+  }
+
+  .footer {
+    display: none;
+  }
+}

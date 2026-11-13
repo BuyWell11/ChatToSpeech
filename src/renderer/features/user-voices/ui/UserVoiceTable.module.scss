@@ -1,0 +1,146 @@
+@use '../../../shared/styles' as *;
+
+.panel {
+  @include panel($space-19 $space-20 $space-16, $radius-3xl);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  @include eyebrow;
+  margin: 0 0 $space-6;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: $font-size-xl;
+}
+
+.count {
+  min-width: 25px;
+  padding: $space-4 $space-7;
+  border-radius: $radius-2xl;
+  background: $color-primary-count;
+  color: $color-primary-count-text;
+  font-size: $font-size-sm;
+  text-align: center;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $space-6;
+
+  button:not(:disabled) {
+    white-space: nowrap;
+  }
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: $space-7;
+  padding: $space-25 $space-14;
+  color: $color-text-empty;
+  text-align: center;
+
+  strong {
+    color: $color-text-strong;
+    font-size: $font-size-base;
+  }
+
+  span {
+    max-width: 390px;
+    font-size: $font-size-sm;
+    line-height: $line-height-loose;
+  }
+
+  code {
+    padding: $space-1 $space-3;
+    border-radius: $radius-xs;
+    background: $color-background-muted;
+    font-size: $font-size-xs;
+  }
+}
+
+.tableWrap {
+  overflow-x: auto;
+  margin-top: $space-17;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+  th {
+    padding: $space-8 $space-9;
+    border-bottom: $border-width solid $color-border-subtle;
+    color: $color-text-caption;
+    font-size: $font-size-2xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: $letter-spacing-wide;
+  }
+
+  td {
+    height: $table-row-height;
+    padding: $space-6 $space-9;
+    border-bottom: $border-width solid $color-border-row;
+    color: $color-text-strong;
+    font-size: $font-size-md;
+  }
+
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  td:first-child {
+    white-space: nowrap;
+  }
+
+  select {
+    width: min(100%, 290px);
+    height: $space-25;
+    padding: 0 $space-8;
+    border: $border-width solid $color-border-table;
+    border-radius: $radius-sm;
+    background: $color-white;
+    font-size: $font-size-sm;
+  }
+}
+
+.avatar {
+  display: inline-grid;
+  width: $space-21;
+  height: $space-21;
+  margin-right: $space-8;
+  place-items: center;
+  border-radius: $radius-round;
+  background: $color-primary-soft;
+  color: $color-primary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+}
+
+.footnote {
+  margin: $space-12 0 0;
+  color: $color-text-footnote;
+  font-size: $font-size-xs;
+  line-height: $line-height-normal;
+}
+
+@media (max-width: $breakpoint-sm) {
+  .header {
+    align-items: flex-start;
+    gap: $space-11;
+  }
+
+  .headerActions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}

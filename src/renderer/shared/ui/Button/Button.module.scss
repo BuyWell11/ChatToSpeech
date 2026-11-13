@@ -1,0 +1,58 @@
+@use '../../styles' as *;
+
+.button {
+  border-radius: $radius-md;
+  font: inherit;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: wait;
+    opacity: $opacity-disabled;
+  }
+}
+
+.primary {
+  border: $border-width solid $color-primary;
+  background: $color-primary;
+  color: $color-white;
+
+  &:hover:not(:disabled) {
+    border-color: $color-primary-hover;
+    background: $color-primary-hover;
+  }
+}
+
+.secondary {
+  border: $border-width solid $color-border-control;
+  background: $color-white;
+  color: $color-text-button;
+
+  &:hover:not(:disabled) {
+    background: $color-background-hover;
+  }
+}
+
+.text {
+  border: 0;
+  background: transparent;
+  color: $color-primary;
+}
+
+.small {
+  min-height: 30px;
+  padding: 0 $space-8;
+  font-size: $font-size-xs;
+}
+
+.medium {
+  min-height: 36px;
+  padding: 0 $space-12;
+  font-size: $font-size-sm;
+}
+
+.large {
+  min-height: 44px;
+  padding: 0 $space-14;
+  font-size: $font-size-base;
+}
