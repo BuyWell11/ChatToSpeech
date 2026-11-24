@@ -4,3 +4,41 @@
   display: grid;
   gap: $space-18;
 }
+
+.volume {
+  @include panel($space-15 $space-20, $radius-3xl);
+  display: grid;
+  gap: $space-7;
+
+  label,
+  label span {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-10;
+  }
+
+  label {
+    display: grid;
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+  label span {
+    display: flex;
+  }
+
+  input {
+    width: 100%;
+    accent-color: $color-primary;
+  }
+
+  output {
+    color: $color-primary;
+  }
+
+  small {
+    color: $color-text-caption;
+    font-size: $font-size-xs;
+  }
+}

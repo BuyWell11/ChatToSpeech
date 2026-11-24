@@ -1,7 +1,9 @@
 param(
     [string]$ToolsDirectory,
     [string]$EnvironmentDirectory,
-    [string]$EngineDirectory
+    [string]$EngineDirectory,
+    [ValidateSet('rhvoice', 'rvc')]
+    [string]$Mode = 'rvc'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,6 +21,12 @@ $engineDirectory = if ($EngineDirectory) {
 } else {
     Join-Path $clientDirectory 'engine'
 }
+$requirementsFile = if ($Mode -eq 'rhvoice') {
+    Join-Path $clientDirectory 'requirements-rhvoice.txt'
+} else {
+    Join-Path $clientDirectory 'requirements-local.txt'
+}
+$manifestPath = Join-Path $environmentDirectory 'runtime-manifest.json'
 $condaDirectory = Join-Path $toolsDirectory 'miniconda'
 $condaBatch = Join-Path $condaDirectory 'condabin\conda.bat'
 $python = Join-Path $environmentDirectory 'python.exe'
@@ -26,14 +34,24 @@ $applioCommit = '2614ccdf56ed6672755576f767988f7a20a956a5'
 $applioAssetsRevision = '3ff370b7023086f57e200ef86a9a251ddf4da472'
 $engineInfer = Join-Path $engineDirectory 'rvc\infer\infer.py'
 
-if (-not (Test-Path $engineInfer)) {
+function Write-SetupProgress {
+    param([string]$Phase, [Nullable[int]]$Percent)
+
+    $value = if ($null -eq $Percent) { '' } else { [string]$Percent }
+    Write-Output "PROGRESS|$Phase|$value"
+}
+
+Write-SetupProgress -Phase 'Preparing directories' -Percent 2
+if ($Mode -eq 'rvc' -and -not (Test-Path $engineInfer)) {
     $downloadDirectory = Join-Path ([System.IO.Path]::GetTempPath()) "govorilka-applio-$([guid]::NewGuid())"
     $archive = Join-Path $downloadDirectory 'applio.zip'
     $extractDirectory = Join-Path $downloadDirectory 'extract'
     try {
         New-Item -ItemType Directory -Force -Path $downloadDirectory | Out-Null
         Write-Host "Downloading the Applio RVC engine (commit $applioCommit)..."
+        Write-SetupProgress -Phase 'Downloading RVC engine' -Percent $null
         Invoke-WebRequest -Uri "https://github.com/IAHispano/Applio/archive/$applioCommit.zip" -OutFile $archive
+        Write-SetupProgress -Phase 'Extracting RVC engine' -Percent $null
         Expand-Archive -LiteralPath $archive -DestinationPath $extractDirectory
 
         $sourceRoot = Get-ChildItem -LiteralPath $extractDirectory -Directory | Select-Object -First 1
@@ -66,18 +84,19 @@ if (-not (Test-Path $condaBatch)) {
     $installerUrl = 'https://repo.anaconda.com/miniconda/Miniconda3-py312_24.11.1-0-Windows-x86_64.exe'
     try {
         Write-Host 'Downloading private Miniconda bootstrap...'
+        Write-SetupProgress -Phase 'Downloading Python installer' -Percent $null
         Invoke-WebRequest -Uri $installerUrl -OutFile $installer
         $installerArguments = "/S /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /D=$condaDirectory"
-        $process = Start-Process -FilePath $installer -ArgumentList $installerArguments -Wait -PassThru
-        if ($process.ExitCode -ne 0) {
-            throw "Miniconda installer exited with code $($process.ExitCode)."
+        $installerProcess = Start-Process -FilePath $installer -ArgumentList $installerArguments -Wait -PassThru
+        if ($installerProcess.ExitCode -ne 0) {
+            throw "Miniconda installer exited with code $($installerProcess.ExitCode)."
         }
         if (-not (Test-Path $condaBatch)) {
             throw 'Miniconda installer completed without creating conda.bat.'
         }
     }
     finally {
-        if (Test-Path $installer) {
+        if (Test-Path -LiteralPath $installer) {
             Remove-Item -LiteralPath $installer -Force
         }
     }
@@ -85,6 +104,7 @@ if (-not (Test-Path $condaBatch)) {
 
 if (-not (Test-Path $python)) {
     Write-Host 'Creating the client-local Python 3.12 environment...'
+    Write-SetupProgress -Phase 'Creating Python environment' -Percent $null
     & $condaBatch create --yes --prefix $environmentDirectory python=3.12
     if ($LASTEXITCODE -ne 0) {
         throw "Conda environment creation failed with exit code $LASTEXITCODE."
@@ -92,23 +112,34 @@ if (-not (Test-Path $python)) {
 }
 
 Write-Host 'Updating pip...'
+Write-SetupProgress -Phase 'Preparing Python' -Percent 12
 & $python -m pip install --upgrade pip
 if ($LASTEXITCODE -ne 0) {
     throw "pip update failed with exit code $LASTEXITCODE."
 }
 
-Write-Host 'Installing CUDA-enabled PyTorch...'
-& $python -m pip install torch==2.7.1+cu128 torchaudio==2.7.1+cu128 --extra-index-url https://download.pytorch.org/whl/cu128
-if ($LASTEXITCODE -ne 0) {
-    throw "PyTorch installation failed with exit code $LASTEXITCODE."
+if ($Mode -eq 'rvc') {
+    Write-Host 'Installing CUDA-enabled PyTorch...'
+    Write-SetupProgress -Phase 'Installing PyTorch and CUDA' -Percent 20
+    & $python -m pip install torch==2.7.1+cu128 torchaudio==2.7.1+cu128 --extra-index-url https://download.pytorch.org/whl/cu128
+    if ($LASTEXITCODE -ne 0) {
+        throw "PyTorch installation failed with exit code $LASTEXITCODE."
+    }
 }
 
-Write-Host 'Installing RVC inference and offline RHVoice dependencies...'
-& $python -m pip install --disable-pip-version-check -r (Join-Path $clientDirectory 'requirements-local.txt')
+Write-Host "Installing $Mode speech dependencies..."
+if ($Mode -eq 'rvc') {
+    $dependencyPhase = 'Installing RVC and RHVoice dependencies'
+} else {
+    $dependencyPhase = 'Installing RHVoice'
+}
+Write-SetupProgress -Phase $dependencyPhase -Percent 40
+& $python -m pip install --disable-pip-version-check -r $requirementsFile
 if ($LASTEXITCODE -ne 0) {
-    throw "Local dependency installation failed with exit code $LASTEXITCODE."
+    throw "Speech dependency installation failed with exit code $LASTEXITCODE."
 }
 
+if ($Mode -eq 'rvc') {
 $requiredAssets = @(
     @{
         Path = 'rvc\models\predictors\rmvpe.pt'
@@ -168,6 +199,7 @@ foreach ($asset in $requiredAssets) {
         $partialPath = "$assetPath.download"
         try {
             Write-Host "Downloading RVC prerequisite: $($asset.Path)..."
+            Write-SetupProgress -Phase "Downloading model $($asset.Path)" -Percent $null
             Invoke-WebRequest -UseBasicParsing -Uri "https://huggingface.co/IAHispano/Applio/resolve/$applioAssetsRevision/Resources/$($asset.UrlPath)" -OutFile $partialPath
             if (-not (Test-AssetFile -Path $partialPath -Asset $asset)) {
                 throw "Downloaded RVC prerequisite failed its size or SHA-256 check: $($asset.Path)."
@@ -181,9 +213,18 @@ foreach ($asset in $requiredAssets) {
         }
     }
 }
+}
 
-Write-Host 'Checking the local CUDA and RHVoice installations...'
-& $python -c "import torch; from rhvoice_wrapper import TTS; assert torch.cuda.is_available(), 'CUDA is unavailable'; tts=TTS(threads=1, quiet=True); audio=tts.get('test', voice='anna', format_='wav'); assert len(audio)>44, 'RHVoice did not synthesize audio'; tts.join(); print('PyTorch CUDA:', torch.__version__, torch.cuda.get_device_name(0)); print('RHVoice WAV bytes:', len(audio))"
+Write-Host 'Checking the local speech installation...'
+Write-SetupProgress -Phase 'Validating speech synthesis' -Percent 85
+if ($Mode -eq 'rvc') {
+    & $python -c "import torch; from rhvoice_wrapper import TTS; assert torch.cuda.is_available(), 'CUDA is unavailable'; tts=TTS(threads=1, quiet=True); audio=tts.get('test', voice='anna', format_='wav'); assert len(audio)>44, 'RHVoice did not synthesize audio'; tts.join(); print('PyTorch CUDA:', torch.__version__, torch.cuda.get_device_name(0)); print('RHVoice WAV bytes:', len(audio))"
+} else {
+    & $python -c "from rhvoice_wrapper import TTS; tts=TTS(threads=1, quiet=True); audio=tts.get('test', voice='anna', format_='wav'); assert len(audio)>44, 'RHVoice did not synthesize audio'; tts.join(); print('RHVoice WAV bytes:', len(audio))"
+}
 if ($LASTEXITCODE -ne 0) {
     throw "Local runtime validation failed with exit code $LASTEXITCODE."
 }
+
+@{ mode = $Mode; version = 1 } | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding UTF8
+Write-SetupProgress -Phase 'Installation complete' -Percent 100

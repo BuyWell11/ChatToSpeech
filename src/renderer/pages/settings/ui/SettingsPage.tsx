@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { AppConfig } from '../../../../electron/shared/config';
-import type { DesktopState, EditableSettings } from '../../../../electron/shared/contract';
+import type {
+  DesktopState,
+  EditableSettings,
+  TwitchSettingsInput,
+} from '../../../../electron/shared/contract';
 import { Notice } from '../../../shared/ui/Notice/Notice';
 import { PageHeader } from '../../../shared/ui/PageHeader/PageHeader';
 import { SettingsSection } from '../../../shared/ui/SettingsSection/SettingsSection';
@@ -12,15 +16,19 @@ interface SettingsPageProps {
   busy: boolean;
   error: string;
   onSave: (settings: Partial<EditableSettings>) => void;
+  onSaveTwitch: (input: TwitchSettingsInput) => Promise<DesktopState | undefined>;
   onError: (message: string) => void;
 }
 
-export function SettingsPage({ state, busy, error, onSave, onError }: SettingsPageProps) {
+export function SettingsPage({ state, busy, error, onSave, onSaveTwitch, onError }: SettingsPageProps) {
   const [draft, setDraft] = useState<AppConfig>(state.config);
   const [regexText, setRegexText] = useState(JSON.stringify(state.config.REGEX_REPLACEMENTS ?? {}, null, 2));
   const [bansText, setBansText] = useState(state.config.BANS.join('\n'));
+  const [channelsText, setChannelsText] = useState(state.config.TWITCH_CHANNELS.join('\n'));
+  const [twitchUsername, setTwitchUsername] = useState(state.config.TWITCH_USERNAME ?? '');
+  const [oauthToken, setOauthToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
   const savedSettings = JSON.stringify({
-    AUDIO_VOLUME: state.config.AUDIO_VOLUME,
     MESSAGE_COOLDOWN_MS: state.config.MESSAGE_COOLDOWN_MS,
     DEFAULT_MODEL_NAME: state.config.DEFAULT_MODEL_NAME,
     TTS_GENDERS: state.config.TTS_GENDERS,
@@ -28,12 +36,30 @@ export function SettingsPage({ state, busy, error, onSave, onError }: SettingsPa
     REGEX_REPLACEMENTS: state.config.REGEX_REPLACEMENTS,
     RVC_SETTINGS: state.config.RVC_SETTINGS,
   });
+  const savedTwitchSettings = JSON.stringify({
+    channels: state.config.TWITCH_CHANNELS,
+    username: state.config.TWITCH_USERNAME,
+    tokenConfigured: state.tokenConfigured,
+  });
 
   useEffect(() => {
     setDraft(state.config);
     setRegexText(JSON.stringify(state.config.REGEX_REPLACEMENTS ?? {}, null, 2));
     setBansText(state.config.BANS.join('\n'));
-  }, [savedSettings]);
+    setChannelsText(state.config.TWITCH_CHANNELS.join('\n'));
+    setTwitchUsername(state.config.TWITCH_USERNAME ?? '');
+    setOauthToken('');
+  }, [savedSettings, savedTwitchSettings]);
+
+  const submitTwitch = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const updated = await onSaveTwitch({
+      channels: channelsText.split(/[\r\n,]+/).map((channel) => channel.trim()).filter(Boolean),
+      username: twitchUsername,
+      oauthToken,
+    });
+    if (updated) setOauthToken('');
+  };
 
   const setRvc = <K extends keyof AppConfig['RVC_SETTINGS']>(
     key: K,
@@ -64,7 +90,6 @@ export function SettingsPage({ state, busy, error, onSave, onError }: SettingsPa
     }
 
     onSave({
-      AUDIO_VOLUME: draft.AUDIO_VOLUME,
       MESSAGE_COOLDOWN_MS: draft.MESSAGE_COOLDOWN_MS,
       DEFAULT_MODEL_NAME: draft.DEFAULT_MODEL_NAME,
       TTS_GENDERS: draft.TTS_GENDERS,
@@ -85,27 +110,49 @@ export function SettingsPage({ state, busy, error, onSave, onError }: SettingsPa
         description="Изменения применяются к следующим сообщениям и сохраняются локально."
       />
       {error && <Notice tone="error">{error}</Notice>}
+      <form className={styles.form} onSubmit={submitTwitch}>
+        <SettingsSection title="Подключение Twitch" description="Изменения активного подключения применяются переподключением.">
+          <div className={styles.grid}>
+            <label>
+              Каналы (по одному на строку)
+              <textarea rows={3} value={channelsText} onChange={(event) => setChannelsText(event.target.value)} required />
+            </label>
+            <label>
+              Twitch username бота
+              <input
+                autoComplete="username"
+                maxLength={25}
+                pattern="[A-Za-z0-9_]{1,25}"
+                value={twitchUsername}
+                onChange={(event) => setTwitchUsername(event.target.value)}
+                required
+              />
+            </label>
+            <label className={styles.tokenField}>
+              OAuth-токен бота
+              <span>
+                <input
+                  autoComplete="new-password"
+                  placeholder={state.tokenConfigured ? 'Оставьте пустым, чтобы не менять сохранённый токен' : 'oauth:...'}
+                  type={showToken ? 'text' : 'password'}
+                  value={oauthToken}
+                  onChange={(event) => setOauthToken(event.target.value)}
+                  required={!state.tokenConfigured}
+                />
+                <Button onClick={() => setShowToken((visible) => !visible)} size="small" type="button">
+                  {showToken ? 'Скрыть' : 'Показать'}
+                </Button>
+              </span>
+            </label>
+          </div>
+          <div className={styles.footer}>
+            <span>Сохранённый токен не показывается и хранится зашифрованным. Пустое поле оставляет его без изменений.</span>
+            <Button disabled={busy} tone="primary" type="submit">Сохранить Twitch-настройки</Button>
+          </div>
+        </SettingsSection>
+      </form>
       <form className={styles.form} onSubmit={submit}>
         <SettingsSection title="Озвучка" description="Основные параметры синтеза и воспроизведения.">
-          <label className={styles.rangeField}>
-            <span>
-              <strong>Громкость</strong>
-              <output>{Math.round(draft.AUDIO_VOLUME * 100)}%</output>
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={draft.AUDIO_VOLUME}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, AUDIO_VOLUME: Number(event.target.value) }))
-              }
-            />
-            <small>
-              Управляет уровнем громкости готового WAV перед воспроизведением, отдельно от системной громкости Windows.
-            </small>
-          </label>
           <div className={styles.grid}>
             <label>
               Голос по умолчанию

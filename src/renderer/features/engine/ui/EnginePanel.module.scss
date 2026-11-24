@@ -91,6 +91,19 @@
   color: $color-warning-text;
 }
 
+.progress {
+  display: grid;
+  gap: $space-5;
+  margin-top: $space-11;
+  color: $color-text-soft;
+  font-size: $font-size-sm;
+
+  progress {
+    width: 100%;
+    accent-color: $color-primary;
+  }
+}
+
 @media (max-width: $breakpoint-lg) {
   .statuses {
     grid-template-columns: repeat(2, minmax(0, 1fr));

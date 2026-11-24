@@ -16,6 +16,7 @@ export interface RvcRuntimePaths {
   voicesPath: string;
   pythonPath: string;
   workerPath: string;
+  speechMode: 'rhvoice' | 'rvc';
 }
 
 interface WorkerResponse {
@@ -38,6 +39,7 @@ export class LocalRvcService {
   private readonly voicesPath: string;
   private readonly workerPath: string;
   private readonly pythonPath: string;
+  private readonly speechMode: 'rhvoice' | 'rvc';
   private models: RvcModel[] = [];
   private rhvoiceVoices: string[] = [];
   private worker: ChildProcessWithoutNullStreams | undefined;
@@ -56,6 +58,7 @@ export class LocalRvcService {
     this.voicesPath = runtimePaths.voicesPath;
     this.pythonPath = runtimePaths.pythonPath;
     this.workerPath = runtimePaths.workerPath;
+    this.speechMode = runtimePaths.speechMode;
   }
 
   async connect(): Promise<void> {
@@ -63,10 +66,12 @@ export class LocalRvcService {
       throw new Error('Локальный RVC-клиент поддерживает только Windows.');
     }
 
-    this.models = await this.scanModels();
+    this.models = this.speechMode === 'rvc' ? await this.scanModels() : [];
 
     await fs.access(this.pythonPath);
-    await fs.access(path.join(this.enginePath, 'rvc', 'infer', 'infer.py'));
+    if (this.speechMode === 'rvc') {
+      await fs.access(path.join(this.enginePath, 'rvc', 'infer', 'infer.py'));
+    }
     await fs.access(this.workerPath);
 
     this.readyPromise = new Promise<void>((resolve, reject) => {
@@ -76,9 +81,9 @@ export class LocalRvcService {
 
     this.worker = spawn(
       this.pythonPath,
-      [this.workerPath, this.enginePath, path.join(this.clientPath, 'temp')],
+      [this.workerPath, this.enginePath, path.join(this.clientPath, 'temp'), this.speechMode],
       {
-        cwd: this.enginePath,
+        cwd: this.clientPath,
         windowsHide: true,
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
@@ -105,7 +110,7 @@ export class LocalRvcService {
     });
 
     await this.readyPromise;
-    if (this.models.length === 0 && this.rhvoiceVoices.length === 0) {
+    if (this.rhvoiceVoices.length === 0 && (this.speechMode === 'rhvoice' || this.models.length === 0)) {
       throw new Error(
         `Не найдены голоса: добавьте RVC-модель в "${this.voicesPath}\\male" или "${this.voicesPath}\\female", либо установите голос RHVoice.`,
       );
@@ -137,7 +142,21 @@ export class LocalRvcService {
   }
 
   async refreshModels(): Promise<void> {
+    if (this.speechMode !== 'rvc') {
+      this.models = [];
+      return;
+    }
     this.models = await this.scanModels();
+  }
+
+  async warmup(modelName: string): Promise<void> {
+    const outputPath = path.join(this.clientPath, 'temp', `rvc_warmup_${Date.now()}.wav`);
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    try {
+      await this.generateSpeechToFile('Проверка синтеза.', modelName, outputPath);
+    } finally {
+      await fs.rm(outputPath, { force: true });
+    }
   }
 
   async getVoiceGroups(): Promise<VoiceGroups> {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, safeStorage, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, safeStorage, shell } from 'electron';
 import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -14,6 +14,8 @@ import type {
   DesktopTwitchStatus,
   EditableSettings,
   SetupInput,
+  SpeechMode,
+  TwitchSettingsInput,
   UserVoiceInput,
 } from '../shared/contract';
 
@@ -32,6 +34,8 @@ let twitchClient: ReturnType<typeof initTwitchListener> | undefined;
 let twitchStatus: DesktopTwitchStatus = 'offline';
 let engineStatus: DesktopEngineStatus = 'not-checked';
 let statusMessage: string | undefined;
+let runtimeProgress: DesktopState['runtimeProgress'];
+let stateReady = false;
 let credentialsPath: string;
 let runtimeRoot: string;
 let resourceRoot: string;
@@ -45,20 +49,8 @@ function getApplicationRoot(): string {
   return app.isPackaged ? process.resourcesPath : app.getAppPath();
 }
 
-async function getRuntimeRoot(): Promise<string> {
-  if (!app.isPackaged) return resourceRoot;
-
-  const projectRoot = path.resolve(resourceRoot, '..', '..', '..');
-  const isProjectRuntime = await Promise.all([
-    fileExists(path.join(projectRoot, 'env', 'python.exe')),
-    fileExists(path.join(projectRoot, 'setup-runtime.ps1')),
-    fileExists(path.join(projectRoot, 'requirements-local.txt')),
-  ]);
-  if (isProjectRuntime.every(Boolean)) {
-    return projectRoot;
-  }
-
-  return path.dirname(process.execPath);
+function getRuntimeRoot(): string {
+  return app.isPackaged ? path.dirname(process.execPath) : resourceRoot;
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -81,10 +73,12 @@ async function getState(): Promise<DesktopState> {
   const voices = audioQueue ? await audioQueue.getAvailableVoices() : emptyVoiceGroups();
   const tokenConfigured = await fileExists(credentialsPath);
   return {
+    stateReady,
     setupComplete: config.TWITCH_CHANNELS.length > 0 && Boolean(config.TWITCH_USERNAME) && tokenConfigured,
     twitchStatus,
     engineStatus,
     statusMessage,
+    runtimeProgress,
     tokenConfigured,
     config: structuredClone(config),
     voices,
@@ -158,6 +152,7 @@ async function initializeSpeechEngine(): Promise<void> {
     voicesPath,
     pythonPath,
     workerPath,
+    speechMode: config.SPEECH_MODE,
   });
   try {
     await service.connect();
@@ -201,16 +196,69 @@ async function saveSetup(input: SetupInput): Promise<DesktopState> {
   const oauthToken = token || existingCredentials?.oauthToken || '';
   if (!oauthToken) throw new Error('Введите OAuth-токен Twitch.');
   if (!oauthToken.startsWith('oauth:')) throw new Error('OAuth-токен должен начинаться с "oauth:".');
-  const encrypted = safeStorage.encryptString(JSON.stringify({ username, oauthToken }));
-  await fs.mkdir(path.dirname(credentialsPath), { recursive: true });
-  const temporaryPath = `${credentialsPath}.tmp`;
-  await fs.writeFile(temporaryPath, encrypted);
-  await fs.rename(temporaryPath, credentialsPath);
+  await saveCredentials(username, oauthToken);
 
   config.TWITCH_CHANNELS = [`#${channelName}`];
   config.TWITCH_USERNAME = username;
   await saveConfig();
   statusMessage = undefined;
+  broadcastState();
+  return getState();
+}
+
+async function saveCredentials(username: string, oauthToken: string): Promise<void> {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error('Безопасное хранилище ОС недоступно, поэтому токен не будет сохранён.');
+  }
+  const encrypted = safeStorage.encryptString(JSON.stringify({ username, oauthToken }));
+  await fs.mkdir(path.dirname(credentialsPath), { recursive: true });
+  const temporaryPath = `${credentialsPath}.tmp`;
+  await fs.writeFile(temporaryPath, encrypted);
+  await fs.rename(temporaryPath, credentialsPath);
+}
+
+async function updateTwitchSettings(input: unknown): Promise<DesktopState> {
+  if (!isRecord(input) || !Array.isArray(input.channels) || input.channels.some((item) => typeof item !== 'string')) {
+    throw new Error('Укажите список Twitch-каналов и имя аккаунта бота.');
+  }
+  const channels = [...new Set(
+    input.channels
+      .map((channel) => channel.trim().replace(/^#/, '').toLowerCase())
+      .filter(Boolean),
+  )];
+  if (channels.length === 0 || channels.some((channel) => !/^[a-z0-9_]{1,25}$/.test(channel))) {
+    throw new Error('Укажите хотя бы один корректный канал Twitch (буквы, цифры и подчёркивания, до 25 символов).');
+  }
+  const username = typeof input.username === 'string' ? input.username.trim() : '';
+  if (!/^[a-zA-Z0-9_]{1,25}$/.test(username)) {
+    throw new Error('Имя аккаунта бота Twitch должно содержать только буквы, цифры и подчёркивания (до 25 символов).');
+  }
+  if (typeof input.oauthToken !== 'string') throw new Error('Некорректное значение OAuth-токена.');
+  const previousCredentials = await readCredentials();
+  const oauthToken = input.oauthToken.trim() || previousCredentials.oauthToken;
+  if (!oauthToken.startsWith('oauth:')) throw new Error('OAuth-токен должен начинаться с "oauth:".');
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error('Безопасное хранилище ОС недоступно, поэтому токен не будет сохранён.');
+  }
+
+  const wasConnected = Boolean(twitchClient && twitchStatus !== 'error');
+  const previousConfig = structuredClone(config);
+  const previousEncrypted = await fs.readFile(credentialsPath);
+  try {
+    await saveCredentials(username, oauthToken);
+    config.TWITCH_CHANNELS = channels.map((channel) => `#${channel}`);
+    config.TWITCH_USERNAME = username;
+    await saveConfig();
+  } catch (error) {
+    Object.assign(config, previousConfig);
+    await fs.writeFile(credentialsPath, previousEncrypted);
+    throw error;
+  }
+
+  if (wasConnected) {
+    await disconnectTwitch();
+    return connectTwitch();
+  }
   broadcastState();
   return getState();
 }
@@ -235,6 +283,21 @@ async function connectTwitch(): Promise<DesktopState> {
     handleTwitchStatus,
     async () => saveConfig(),
   );
+  const defaultVoice = config.DEFAULT_MODEL_NAME;
+  const isRhvoice = /^rhvoice:\s*/i.test(defaultVoice);
+  if (config.SPEECH_MODE === 'rvc' && defaultVoice && !isRhvoice) {
+    statusMessage = `Подключение готово. Подготавливаю голос «${defaultVoice}» для быстрого первого сообщения…`;
+    broadcastState();
+    void rvcService!.warmup(defaultVoice).then(() => {
+      if (twitchStatus === 'connected') {
+        statusMessage = undefined;
+        broadcastState();
+      }
+    }).catch((error: unknown) => {
+      statusMessage = `Первое сообщение может озвучиваться дольше обычного: ${error instanceof Error ? error.message : String(error)}`;
+      broadcastState();
+    });
+  }
   return getState();
 }
 
@@ -361,7 +424,9 @@ async function updateSettings(input: unknown): Promise<DesktopState> {
 
 async function setUserVoice(input: UserVoiceInput): Promise<DesktopState> {
   const username = input.username.trim().toLowerCase();
-  if (!username) throw new Error('Имя пользователя не может быть пустым.');
+  if (!/^[a-z0-9_]{1,25}$/.test(username)) {
+    throw new Error('Twitch username должен содержать только буквы, цифры и подчёркивания (до 25 символов).');
+  }
   if (input.voice === '') {
     delete config.USER_VOICES[username];
   } else {
@@ -401,14 +466,27 @@ async function openVoicesFolder(): Promise<void> {
   if (error) throw new Error(`Не удалось открыть папку голосовых моделей: ${error}`);
 }
 
-function setupRuntime(): Promise<DesktopState> {
+async function setupRuntime(mode: SpeechMode): Promise<DesktopState> {
+  if (mode !== 'rhvoice' && mode !== 'rvc') {
+    throw new Error('Выберите режим RHVoice или RHVoice + RVC.');
+  }
   if (engineStatus === 'installing') return Promise.reject(new Error('Установка уже выполняется.'));
+  if (twitchClient) await disconnectTwitch();
+  await rvcService?.close();
+  rvcService = undefined;
+  audioQueue = undefined;
+  config.SPEECH_MODE = mode;
+  await saveConfig();
   const scriptPath = path.join(resourceRoot, 'setup-runtime.ps1');
   const runtimeTools = path.join(runtimeRoot, 'tools');
   const runtimeEnvironment = path.join(runtimeRoot, 'env');
   const runtimeEngine = path.join(runtimeRoot, 'engine');
   engineStatus = 'installing';
-  statusMessage = 'Загружаю RVC engine, Python, CUDA и RHVoice. Первая установка может занять много времени и места на диске.';
+  statusMessage =
+    mode === 'rvc'
+      ? 'Устанавливаю RHVoice + RVC. Это может занять много времени и места на диске.'
+      : 'Устанавливаю облегчённый режим RHVoice без CUDA и RVC.';
+  runtimeProgress = { phase: 'Запуск установщика', percent: 0 };
   broadcastState();
 
   return new Promise((resolve, reject) => {
@@ -428,6 +506,8 @@ function setupRuntime(): Promise<DesktopState> {
         runtimeEnvironment,
         '-EngineDirectory',
         runtimeEngine,
+        '-Mode',
+        mode,
       ],
       { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] },
     );
@@ -436,11 +516,21 @@ function setupRuntime(): Promise<DesktopState> {
       outputBuffer += chunk;
       const lines = outputBuffer.split(/\r?\n/);
       outputBuffer = lines.pop() ?? '';
-      const latest = lines.map((line) => line.trim()).filter(Boolean).pop();
-      if (latest) {
-        statusMessage = latest;
-        broadcastState();
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        const progressMatch = /^PROGRESS\|([^|]+)\|(\d*)$/.exec(line);
+        if (progressMatch) {
+          runtimeProgress = {
+            phase: progressMatch[1],
+            percent: progressMatch[2] ? Number(progressMatch[2]) : null,
+          };
+          statusMessage = progressMatch[1];
+        } else if (!line.startsWith('WARNING:')) {
+          statusMessage = line.slice(-240);
+        }
       }
+      broadcastState();
     };
     installer.stdout.setEncoding('utf8');
     installer.stderr.setEncoding('utf8');
@@ -449,6 +539,7 @@ function setupRuntime(): Promise<DesktopState> {
     installer.on('error', (error) => {
       engineStatus = 'error';
       statusMessage = error.message;
+      runtimeProgress = undefined;
       broadcastState();
       reject(error);
     });
@@ -457,14 +548,20 @@ function setupRuntime(): Promise<DesktopState> {
         engineStatus = 'error';
         const error = new Error(`Установка локальной среды завершилась с кодом ${code}. ${statusMessage ?? ''}`);
         statusMessage = error.message;
+        runtimeProgress = undefined;
         broadcastState();
         reject(error);
         return;
       }
       try {
         await initializeSpeechEngine();
+        runtimeProgress = undefined;
         resolve(await getState());
       } catch (error) {
+        engineStatus = 'error';
+        runtimeProgress = undefined;
+        statusMessage = error instanceof Error ? error.message : String(error);
+        broadcastState();
         reject(error);
       }
     });
@@ -494,7 +591,10 @@ function registerIpcHandlers(): void {
   });
   ipcMain.handle('desktop:refresh-voices', () => refreshVoices());
   ipcMain.handle('desktop:open-voices-folder', () => openVoicesFolder());
-  ipcMain.handle('desktop:setup-runtime', () => setupRuntime());
+  ipcMain.handle('desktop:update-twitch-settings', (_event, input: unknown) => updateTwitchSettings(input));
+  ipcMain.handle('desktop:setup-runtime', (_event, mode: unknown) =>
+    setupRuntime(mode === 'rhvoice' || mode === 'rvc' ? mode : (mode as SpeechMode)),
+  );
 }
 
 function createWindow(): void {
@@ -504,12 +604,19 @@ function createWindow(): void {
     minWidth: 820,
     minHeight: 620,
     backgroundColor: '#f5f6f8',
+    autoHideMenuBar: true,
+    title: 'ChatToSpeech',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+  window.setMenuBarVisibility(false);
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (url === 'https://t.me/buywell') void shell.openExternal(url);
+    return { action: 'deny' };
   });
   if (process.env.ELECTRON_RENDERER_URL) {
     void window.loadURL(process.env.ELECTRON_RENDERER_URL);
@@ -522,20 +629,22 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  app.setName('ChatToSpeech');
+  Menu.setApplicationMenu(null);
   resourceRoot = getApplicationRoot();
-  runtimeRoot = await getRuntimeRoot();
+  runtimeRoot = getRuntimeRoot();
   console.log(`[Electron] Локальная среда и временные файлы: ${runtimeRoot}`);
   credentialsPath = path.join(app.getPath('userData'), 'credentials.enc');
   configStore = new ConfigStore(
     app.getPath('userData'),
     path.join(app.isPackaged ? path.dirname(app.getPath('exe')) : app.getAppPath(), 'config.json'),
   );
-  config = await configStore.load();
+  config = normalizeConfig({});
   registerIpcHandlers();
   createWindow();
-  void ensureSpeechRuntime().catch((error) => {
-    console.error('[Electron] Не удалось автоматически подготовить среду озвучки:', error);
-  });
+  config = await configStore.load();
+  stateReady = true;
+  broadcastState();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -544,35 +653,6 @@ app.whenReady().then(async () => {
   console.error('[Electron] Не удалось запустить приложение:', error);
   app.quit();
 });
-
-async function ensureSpeechRuntime(): Promise<void> {
-  const requiredFiles = [
-    path.join(runtimeRoot, 'env', 'python.exe'),
-    path.join(runtimeRoot, 'engine', 'rvc', 'infer', 'infer.py'),
-    path.join(runtimeRoot, 'engine', 'rvc', 'models', 'predictors', 'rmvpe.pt'),
-    path.join(runtimeRoot, 'engine', 'rvc', 'models', 'predictors', 'fcpe.pt'),
-    path.join(runtimeRoot, 'engine', 'rvc', 'models', 'embedders', 'contentvec', 'config.json'),
-    path.join(runtimeRoot, 'engine', 'rvc', 'models', 'embedders', 'contentvec', 'pytorch_model.bin'),
-    path.join(runtimeRoot, 'engine', 'ffmpeg.exe'),
-    path.join(runtimeRoot, 'engine', 'ffprobe.exe'),
-  ];
-  const filesPresent = await Promise.all(requiredFiles.map(fileExists));
-
-  if (filesPresent.every(Boolean)) {
-    try {
-      await initializeSpeechEngine();
-    } catch (error) {
-      console.error('[Electron] Не удалось запустить локальную среду озвучки:', error);
-    }
-    return;
-  }
-
-  try {
-    await setupRuntime();
-  } catch (error) {
-    console.error('[Electron] Автоматическая установка локальной среды завершилась ошибкой:', error);
-  }
-}
 
 app.on('before-quit', () => {
   const client = twitchClient;

@@ -51,6 +51,56 @@
   margin: $space-9 0 $space-20;
 }
 
+.runtime {
+  display: grid;
+  gap: $space-9;
+  margin-bottom: $space-14;
+  padding: $space-12;
+  border: $border-width solid $color-border-soft;
+  border-radius: $radius-lg;
+  background: $color-background-soft;
+
+  h2 {
+    margin: 0;
+    font-size: $font-size-md;
+  }
+
+  > label {
+    display: flex;
+    align-items: flex-start;
+    gap: $space-7;
+    font-size: $font-size-sm;
+  }
+
+  input {
+    margin-top: $space-2;
+    accent-color: $color-primary;
+  }
+
+  label span,
+  label small {
+    display: block;
+  }
+
+  label small {
+    margin-top: $space-2;
+    color: $color-text-help;
+    font-size: $font-size-xs;
+  }
+
+  progress {
+    width: 100%;
+    accent-color: $color-primary;
+  }
+}
+
+.progress {
+  display: grid;
+  gap: $space-5;
+  color: $color-text-help;
+  font-size: $font-size-xs;
+}
+
 .form {
   display: grid;
   gap: $space-14;

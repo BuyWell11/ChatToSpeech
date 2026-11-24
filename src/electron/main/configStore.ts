@@ -3,6 +3,7 @@ import * as path from 'path';
 import type { AppConfig } from '../shared/config';
 
 const defaultConfig: AppConfig = {
+  SPEECH_MODE: 'rvc',
   TWITCH_CHANNELS: [],
   TWITCH_USERNAME: '',
   BOT_COMMAND_PREFIX: '!',
@@ -39,6 +40,7 @@ export function normalizeConfig(value: unknown): AppConfig {
 
   return {
     ...defaultConfig,
+    SPEECH_MODE: saved.SPEECH_MODE === 'rhvoice' ? 'rhvoice' : 'rvc',
     TWITCH_CHANNELS: Array.isArray(saved.TWITCH_CHANNELS)
       ? saved.TWITCH_CHANNELS.filter((channel): channel is string => typeof channel === 'string')
       : [],

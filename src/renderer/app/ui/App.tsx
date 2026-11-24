@@ -17,7 +17,7 @@ export function App() {
     if (nextState) setState(nextState);
   };
 
-  if (!state) {
+  if (!state || !state.stateReady) {
     return (
       <main className={styles.loading}>
         <span className={styles.spinner} />
@@ -36,8 +36,10 @@ export function App() {
         twitchUsername={state.config.TWITCH_USERNAME ?? ''}
         tokenConfigured={state.tokenConfigured}
         engineStatus={state.engineStatus}
+        runtimeProgress={state.runtimeProgress}
         statusMessage={state.statusMessage}
-        onSetupRuntime={() => run(async () => applyState(await window.desktop.setupRuntime()))}
+        speechMode={state.config.SPEECH_MODE}
+        onSetupRuntime={(mode) => run(async () => applyState(await window.desktop.setupRuntime(mode)))}
         onSave={(input) => run(async () => applyState(await window.desktop.saveSetup(input)))}
       />
     );
@@ -55,11 +57,16 @@ export function App() {
             onConnect={() => run(async () => applyState(await window.desktop.connectTwitch()))}
             onDisconnect={() => run(async () => applyState(await window.desktop.disconnectTwitch()))}
             onCheckEngine={() => run(async () => applyState(await window.desktop.checkEngine()))}
-            onSetupRuntime={() => run(async () => applyState(await window.desktop.setupRuntime()))}
+            onSetupRuntime={(mode) =>
+              run(async () => applyState(await window.desktop.setupRuntime(mode)))
+            }
             onOpenVoices={() => run(async () => window.desktop.openVoicesFolder())}
             onRefreshVoices={() => run(async () => applyState(await window.desktop.refreshVoices()))}
             onSetUserVoice={(username, voice) =>
               run(async () => applyState(await window.desktop.setUserVoice({ username, voice })))
+            }
+            onSaveVolume={(volume) =>
+              run(async () => applyState(await window.desktop.updateSettings({ AUDIO_VOLUME: volume })))
             }
           />
         ) : (
@@ -69,6 +76,13 @@ export function App() {
             error={error}
             onSave={(settings) =>
               run(async () => applyState(await window.desktop.updateSettings(settings)))
+            }
+            onSaveTwitch={(input) =>
+              run(async () => {
+                const nextState = await window.desktop.updateTwitchSettings(input);
+                applyState(nextState);
+                return nextState;
+              })
             }
             onError={setError}
           />

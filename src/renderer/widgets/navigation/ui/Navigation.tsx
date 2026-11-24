@@ -11,21 +11,24 @@ export function Navigation({ current, onChange }: NavigationProps) {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
-        <span className={styles.logo}>Г</span>
+        <span className={styles.logo}>C</span>
         <div>
-          <strong>Говорилка</strong>
-          <small>Twitch voice client</small>
+          <strong>ChatToSpeech</strong>
+          <small>Twitch chat voice</small>
         </div>
       </div>
       <nav className={styles.links} aria-label="Основная навигация">
         <button className={current === 'dashboard' ? styles.active : ''} onClick={() => onChange('dashboard')}>
-          <span>⌂</span> Обзор
+          <span>⌂</span> Главная
         </button>
         <button className={current === 'settings' ? styles.active : ''} onClick={() => onChange('settings')}>
           <span>⚙</span> Настройки
         </button>
       </nav>
-      <div className={styles.footer}>Локальная озвучка Twitch</div>
+      <footer className={styles.footer}>
+        <span>Локальная озвучка Twitch</span>
+        <a href="https://t.me/buywell" target="_blank" rel="noreferrer">Разработано BuyWell</a>
+      </footer>
     </aside>
   );
 }

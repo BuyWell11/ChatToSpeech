@@ -8,6 +8,12 @@ export interface VoiceGroups {
 
 export type DesktopTwitchStatus = 'offline' | 'connecting' | 'connected' | 'error';
 export type DesktopEngineStatus = 'not-checked' | 'checking' | 'ready' | 'installing' | 'error';
+export type SpeechMode = 'rhvoice' | 'rvc';
+
+export interface RuntimeProgress {
+  phase: string;
+  percent: number | null;
+}
 
 export interface DesktopUserVoice {
   username: string;
@@ -15,10 +21,12 @@ export interface DesktopUserVoice {
 }
 
 export interface DesktopState {
+  stateReady: boolean;
   setupComplete: boolean;
   twitchStatus: DesktopTwitchStatus;
   engineStatus: DesktopEngineStatus;
   statusMessage?: string;
+  runtimeProgress?: RuntimeProgress;
   tokenConfigured: boolean;
   config: AppConfig;
   voices: VoiceGroups;
@@ -28,6 +36,12 @@ export interface DesktopState {
 export interface SetupInput {
   channel: string;
   twitchUsername: string;
+  oauthToken: string;
+}
+
+export interface TwitchSettingsInput {
+  channels: string[];
+  username: string;
   oauthToken: string;
 }
 
@@ -49,8 +63,9 @@ export interface DesktopApi {
   disconnectTwitch(): Promise<DesktopState>;
   updateSettings(settings: Partial<EditableSettings>): Promise<DesktopState>;
   setUserVoice(input: UserVoiceInput): Promise<DesktopState>;
+  updateTwitchSettings(input: TwitchSettingsInput): Promise<DesktopState>;
   refreshVoices(): Promise<DesktopState>;
   openVoicesFolder(): Promise<void>;
-  setupRuntime(): Promise<DesktopState>;
+  setupRuntime(mode: SpeechMode): Promise<DesktopState>;
   onStateChanged(callback: (state: DesktopState) => void): () => void;
 }

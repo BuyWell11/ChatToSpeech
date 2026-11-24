@@ -1,24 +1,24 @@
-# Говорилка — озвучка чата Twitch
+# ChatToSpeech — озвучка чата Twitch
 
 Настольное приложение для Windows, которое читает сообщения Twitch вслух. RHVoice синтезирует речь локально; при выборе RVC-модели звук дополнительно преобразуется под голос модели. Приложение использует установленный на компьютере движок — текст и аудио не отправляются в облачный сервис синтеза.
 
 ## Установка и первый запуск
 
-1. Запустите `Govorilka Setup 1.0.0.exe` и установите приложение. Если установщик получен не с официально подписанного сайта, Windows может показать предупреждение: текущая сборка не подписана сертификатом издателя.
-2. При первом запуске укажите Twitch-канал, имя аккаунта бота и OAuth-токен этого аккаунта.
-3. Приложение сохраняет токен отдельно от настроек и шифрует его средствами Windows. Токен не передаётся в интерфейс приложения.
-4. При первом запуске приложение автоматически скачает и подготовит RVC-движок, стандартные модели, Python/CUDA и RHVoice. Ход установки виден в окне приложения; она может занять много времени и несколько гигабайт диска.
-5. Когда движок готов, нажмите **Подключить Twitch**. Если установка не удалась, на главном экране можно повторить её.
+1. Запустите установщик ChatToSpeech. Если установщик не подписан сертификатом издателя, Windows может показать предупреждение.
+2. При первом запуске выберите режим озвучки: **Только RHVoice** — облегчённый вариант без RVC и CUDA; **RHVoice + RVC** — нейроголоса, требующие больше места и совместимую NVIDIA GPU.
+3. Нажмите **Установить выбранный движок** и следите за этапами загрузки в окне приложения. Установка начинается только после вашего выбора; режим RHVoice-only не загружает RVC-движок и модели.
+4. Укажите Twitch-канал, имя аккаунта бота и OAuth-токен этого аккаунта. Токен хранится отдельно от настроек и шифруется средствами Windows; интерфейс не получает сохранённый токен.
+5. Когда локальный движок готов, нажмите **Подключить Twitch**. При подключении приложение заранее прогревает выбранную RVC-модель; первый запуск синтеза всё равно может занять дольше последующих.
 
-Загрузки требуют интернета и свободного места. Код RVC скачивается из официального репозитория Applio, закреплённого на версии 3.2.9; стандартные веса загружаются из зафиксированной версии официального хранилища и проверяются по SHA-256. Python/CUDA-настройка рассчитана на совместимую NVIDIA GPU. Приложение нельзя устанавливать в папку, куда у пользователя нет прав на запись.
+Загрузки требуют интернета и свободного места. Режим RVC скачивает движок и необходимые модели из закреплённых версий официальных источников; загружаемые файлы проверяются по SHA-256. Установите приложение в папку, куда у пользователя есть права на запись: Python-среда, движок, пользовательские голоса и временные файлы размещаются рядом с EXE.
 
 ## Основной экран и настройки
 
-- **Обзор** показывает состояние локального движка и подключения к Twitch, а также пользователей с сохранёнными голосами.
-- В таблице пользователей можно изменить голос или выбрать **Голос по умолчанию**, чтобы удалить персональное назначение.
+- **Главная** показывает состояние локального движка и подключения к Twitch, громкость и пользователей с назначенными голосами.
+- В таблице пользователей можно искать пользователя, вручную добавить ему голос, изменить голос или выбрать **Голос по умолчанию**, чтобы удалить персональное назначение.
 - **Папка моделей** открывает место, где хранятся RVC-модели. Разложите файлы модели по папкам, описанным ниже, и нажмите **Обновить модели**.
-- **Настройки** содержат громкость, голос по умолчанию, RHVoice-голоса для мужских и женских RVC-моделей, паузу между сообщениями, параметры RVC, список игнорируемых пользователей и правила замены текста.
-- Громкость меняет уровень готовой записи перед воспроизведением. Она не изменяет общую громкость Windows.
+- Громкость на главном экране сохраняется после того, как вы закончите двигать ползунок. Она меняет уровень готовой записи перед воспроизведением, а не системную громкость Windows.
+- **Настройки** позволяют менять Twitch-каналы, имя аккаунта бота и OAuth-токен (сохранённый токен не показывается), а также голос по умолчанию, RHVoice-голоса, паузу между сообщениями, параметры RVC, список игнорируемых пользователей и правила замены текста.
 
 ## Как работает озвучка
 
@@ -81,7 +81,7 @@ voices/
 
 ## Где хранятся файлы
 
-Настройки и зашифрованный токен хранятся отдельно в данных пользователя Windows. Локальная Python/CUDA-среда и RVC-модели хранятся рядом с приложением. При запуске сборки из папки `release` приложение повторно использует `env`, `tools` и `voices` из корня проекта, если там найдена существующая среда Python.
+Настройки и зашифрованный токен хранятся отдельно в данных пользователя Windows. Локальная Python-среда, движок, голоса и временные файлы находятся рядом с EXE.
 
 В упрощённой схеме каталог проекта/установки выглядит так:
 
@@ -126,11 +126,11 @@ govorilkaClient/
 
 `__pycache__/` и файлы `.pyc`, если они появляются рядом с Python-файлами, — автоматически создаваемый кэш Python. Его не нужно редактировать или переносить как модель. `engine/`, `node_modules/`, `env/`, `tools/miniconda/`, `voices/`, `temp/`, `out/` и `release/` исключены из Git: это скачанный код/модели, локальные пользовательские данные, зависимости или результаты установки/сборки.
 
-В **установленной desktop-версии** RVC-движок, Python-среда, Miniconda, стандартные и пользовательские модели, а также временные файлы лежат рядом с EXE. Они автоматически загружаются или создаются при первом запуске и не включаются в Git/установщик. Для установки среды приложению нужен доступ на запись в эту папку. Настройки и зашифрованный токен остаются в профиле пользователя Windows:
+В **установленной desktop-версии** RVC-движок, Python-среда, Miniconda, пользовательские модели и временные файлы лежат рядом с EXE. Установка среды начинается по выбору пользователя; для RHVoice-only не устанавливаются RVC-движок и CUDA. Настройки и зашифрованный токен остаются в профиле пользователя Windows:
 
 ```text
 папка приложения/
-├── Govorilka.exe
+├── ChatToSpeech.exe
 ├── resources/        код приложения и установочный скрипт
 ├── engine/           загруженный RVC-движок и стандартные модели
 ├── env/              Python, RHVoice, PyTorch/CUDA и пакеты
@@ -139,7 +139,7 @@ govorilkaClient/
 └── temp/             промежуточные и готовые WAV-файлы
 
 папка данных пользователя Windows/
-├── config.json       настройки, перенесённые из старого config.json
+├── config.json       настройки приложения
 └── credentials.enc   зашифрованные Twitch username и OAuth-токен
 ```
 
@@ -165,9 +165,9 @@ govorilkaClient/
 |---|---|
 | `app/` | Точка входа React, корневой компонент и общие стили приложения. |
 | `app/ui/` | Корневой компонент `App` и его стили. |
-| `pages/` | Целые экраны: первый запуск, обзор и настройки. |
+| `pages/` | Целые экраны: первый запуск, главная и настройки. |
 | `pages/first-run/ui/` | Форма первоначальной настройки Twitch. |
-| `pages/dashboard/ui/` | Экран обзора и состояния приложения. |
+| `pages/dashboard/ui/` | Главная страница и состояние приложения. |
 | `pages/settings/ui/` | Форма настроек приложения. |
 | `widgets/` | Крупные элементы интерфейса, например навигация. |
 | `widgets/navigation/ui/` | Кнопки переключения между экранами. |
@@ -219,25 +219,25 @@ npm run app:package
 
 # English
 
-Govorilka is a Windows desktop app that reads Twitch chat messages aloud. RHVoice synthesizes speech locally. If an RVC model is selected, the generated voice is additionally converted to that model. Text and audio are not sent to a cloud speech service.
+ChatToSpeech is a Windows desktop app that reads Twitch chat messages aloud. RHVoice synthesizes speech locally. If an RVC model is selected, the generated voice is additionally converted to that model. Text and audio are not sent to a cloud speech service.
 
 ## Install and first run
 
-1. Run `Govorilka Setup 1.0.0.exe` and install the app. Windows may show an unknown-publisher warning because the current build is not code-signed.
-2. On first launch, enter the Twitch channel, the bot account username, and that account's OAuth token.
-3. The token is stored separately from settings and encrypted with Windows secure storage. It is not exposed to the UI.
-4. On first launch, the app automatically downloads and prepares the RVC engine, standard models, Python/CUDA, and RHVoice. Progress is shown in the app; the initial setup can take a while and several gigabytes of disk space.
-5. When the engine is ready, select **Подключить Twitch** (Connect Twitch). If setup fails, retry it from the dashboard.
+1. Run the ChatToSpeech installer. Windows may show an unknown-publisher warning if the build is not code-signed.
+2. On first launch, choose a speech mode: **RHVoice only** is the smaller option without RVC or CUDA; **RHVoice + RVC** adds neural voices and requires more disk space and a compatible NVIDIA GPU.
+3. Select **Установить выбранный движок** (Install selected engine) and follow the progress shown in the app. Setup starts only after you choose a mode; RHVoice-only does not download the RVC engine or models.
+4. Enter the Twitch channel, bot account username, and its OAuth token. The token is encrypted using Windows secure storage, kept separately from settings, and never returned to the UI.
+5. When the local engine is ready, select **Подключить Twitch** (Connect Twitch). Connecting warms up the selected RVC model; the first synthesis may still take longer than subsequent ones.
 
-Downloads require an internet connection and free disk space. The RVC engine is downloaded from the official Applio repository, pinned to version 3.2.9; standard weights are downloaded from a pinned revision of the official storage and verified with SHA-256. Python/CUDA setup targets a compatible NVIDIA GPU. Install the app in a directory writable by your user.
+Downloads require an internet connection and free disk space. RVC components come from pinned versions of official sources and are verified with SHA-256. Install the app in a directory writable by your user: the Python environment, engine, user voices, and temporary files are stored next to the executable.
 
 ## Dashboard and settings
 
-- **Обзор** (Overview) shows the local speech engine and Twitch connection status, plus users with saved voice assignments.
-- Change a user's voice in the table, or select **Голос по умолчанию** (Default voice) to remove their personal assignment.
+- **Главная** (Home) shows the local speech engine and Twitch connection status, volume, and users with assigned voices.
+- Search the user table, manually add a user and voice, change an assignment, or select **Голос по умолчанию** (Default voice) to remove it.
 - **Папка моделей** (Models folder) opens the RVC model location. Put model files in the folders described below, then select **Обновить модели** (Refresh models).
-- **Настройки** (Settings) includes volume, default voice, RHVoice voices used by male and female RVC models, message cooldown, RVC controls, ignored users, and text replacement rules.
-- Volume scales the generated recording before playback. It does not change Windows system volume.
+- Adjust volume on the home page; it is saved after you stop moving the slider. It scales the generated recording before playback, not Windows system volume.
+- **Настройки** (Settings) lets you edit Twitch channels, bot username, and OAuth token (the saved token is never displayed), as well as default voice, RHVoice voices, message cooldown, RVC controls, ignored users, and text replacement rules.
 
 ## How speech generation works
 
@@ -300,7 +300,7 @@ The inner folder name appears in the voice list and is used with `!voice`. Each 
 
 ## Where files are stored
 
-Settings and encrypted credentials are separate from the application. The local runtime and voice models live beside the app executable. When running a packaged build from the project `release` folder, an existing project-root Python environment is reused.
+Settings and encrypted credentials are separate from the application. The local runtime, voices, and temporary files live beside the app executable.
 
 The project/installation directory has this simplified layout:
 
@@ -328,11 +328,11 @@ govorilkaClient/
 └── .idea/                JetBrains IDE settings (not required to run the app)
 ```
 
-In an **installed desktop app**, the RVC engine, Python runtime, tools, standard and user voice models, and temporary audio are stored beside the executable. They are downloaded or created automatically on first launch and are not included in Git or the installer. The app folder must be writable. Settings and encrypted credentials remain in the Windows user profile:
+In an **installed desktop app**, the RVC engine, Python runtime, tools, user voice models, and temporary audio are stored beside the executable. Runtime setup starts only after the user selects a speech mode; RHVoice-only does not install the RVC engine or CUDA. The app folder must be writable. Settings and encrypted credentials remain in the Windows user profile:
 
 ```text
 application folder/
-├── Govorilka.exe
+├── ChatToSpeech.exe
 ├── resources/        application code and setup script
 ├── engine/           downloaded RVC engine and standard models
 ├── env/              Python, RHVoice, PyTorch/CUDA, and packages
@@ -341,7 +341,7 @@ application folder/
 └── temp/             intermediate and final WAV files
 
 Windows user data folder/
-├── config.json       settings migrated from the legacy config.json
+├── config.json       app settings
 └── credentials.enc   encrypted Twitch username and OAuth token
 ```
 

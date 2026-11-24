@@ -1,4 +1,5 @@
 export interface AppConfig {
+  SPEECH_MODE: 'rhvoice' | 'rvc';
   TWITCH_CHANNELS: string[];
   TWITCH_USERNAME?: string;
   BOT_COMMAND_PREFIX?: string;

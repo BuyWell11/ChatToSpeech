@@ -9,10 +9,12 @@ from pathlib import Path
 
 ENGINE_ROOT = Path(sys.argv[1]).resolve()
 TEMP_DIR = Path(sys.argv[2]).resolve()
+SPEECH_MODE = sys.argv[3] if len(sys.argv) > 3 else "rvc"
 PROTOCOL_OUT = sys.stdout
 sys.stdout = sys.stderr
 sys.path.insert(0, str(ENGINE_ROOT))
-os.chdir(ENGINE_ROOT)
+TEMP_DIR.mkdir(parents=True, exist_ok=True)
+os.chdir(TEMP_DIR.parent)
 
 
 def send(payload):
@@ -26,10 +28,12 @@ def main():
     try:
         from rhvoice_wrapper import TTS
         import soundfile as sf
-        from rvc.infer.infer import VoiceConverter
 
         tts = TTS(threads=1, quiet=True)
-        converter = VoiceConverter()
+        if SPEECH_MODE == "rvc":
+            from rvc.infer.infer import VoiceConverter
+
+            converter = VoiceConverter()
         voices = getattr(tts, "voices", [])
         if isinstance(voices, dict):
             voices = list(voices.keys())
@@ -44,8 +48,13 @@ def main():
                 if request.get("action") == "shutdown":
                     break
                 action = request.get("action")
+                if action == "warmup":
+                    action = "convert"
+                    request["text"] = "Проверка синтеза."
                 if action not in ("convert", "synthesize"):
                     raise ValueError(f"Неизвестная команда: {request.get('action')}")
+                if action == "convert" and converter is None:
+                    raise RuntimeError("RVC не установлен. Выберите установку RHVoice + RVC.")
 
                 request_id = request["id"]
                 output_path = Path(request["outputPath"]).resolve()
