@@ -3,10 +3,13 @@
 .shell {
   display: grid;
   grid-template-columns: $sidebar-width minmax(0, 1fr);
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .content {
+  min-height: 0;
+  overflow-y: auto;
   padding: $space-27 clamp($space-20, 5vw, $space-31);
   max-width: $content-width;
   width: 100%;
@@ -43,6 +46,7 @@
 @media (max-width: $breakpoint-md) {
   .shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .content {

@@ -10,33 +10,6 @@
   gap: $space-14;
 }
 
-.rangeField {
-  display: grid;
-  gap: $space-10;
-
-  span {
-    display: flex;
-    justify-content: space-between;
-    font-size: $font-size-md;
-  }
-
-  output {
-    color: $color-primary;
-    font-weight: $font-weight-bold;
-  }
-
-  small {
-    color: $color-text-caption;
-    font-size: $font-size-xs;
-    line-height: $line-height-normal;
-  }
-
-  input {
-    width: 100%;
-    accent-color: $color-primary;
-  }
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -52,6 +25,8 @@
   }
 
   input[type="number"],
+  input[type="text"],
+  input[type="password"],
   select,
   textarea {
     width: 100%;
@@ -62,6 +37,18 @@
     outline: none;
     background: $color-white;
     font-size: $font-size-sm;
+  }
+
+  .tokenField {
+    > span {
+      display: flex;
+      gap: $space-6;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+    }
   }
 
   input[type="range"] {

@@ -1,4 +1,9 @@
-import type { DesktopEngineStatus, DesktopState, DesktopTwitchStatus } from '../../../../electron/shared/contract';
+import type {
+  DesktopEngineStatus,
+  DesktopState,
+  DesktopTwitchStatus,
+  SpeechMode,
+} from '../../../../electron/shared/contract';
 import { Button } from '../../../shared/ui/Button/Button';
 import styles from './EnginePanel.module.scss';
 
@@ -8,7 +13,7 @@ interface EnginePanelProps {
   onCheck: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
-  onSetupRuntime: () => void;
+  onSetupRuntime: (mode: SpeechMode) => void;
 }
 
 const engineLabels: Record<DesktopEngineStatus, string> = {
@@ -69,6 +74,24 @@ export function EnginePanel({
       </div>
 
       {state.statusMessage && <p className={styles.message}>{state.statusMessage}</p>}
+      {state.runtimeProgress && (
+        <div className={styles.progress}>
+          <span>
+            {state.runtimeProgress.phase}
+            {state.runtimeProgress.percent !== null ? ` · ${state.runtimeProgress.percent}%` : ''}
+          </span>
+          <progress
+            max={100}
+            {...(state.runtimeProgress.percent === null ? {} : { value: state.runtimeProgress.percent })}
+          />
+        </div>
+      )}
+      {state.engineStatus === 'checking' && !state.runtimeProgress && (
+        <div className={styles.progress}>
+          <span>Проверяю локальную среду и доступные голоса…</span>
+          <progress />
+        </div>
+      )}
 
       <div className={styles.actions}>
         {state.twitchStatus === 'connected' ? (
@@ -86,12 +109,17 @@ export function EnginePanel({
           </Button>
         )}
         {state.engineStatus === 'error' && (
-          <Button disabled={busy} onClick={onSetupRuntime} tone="text">
+          <Button disabled={busy} onClick={() => onSetupRuntime(state.config.SPEECH_MODE)} tone="text">
             Установить / восстановить среду
           </Button>
         )}
+        {state.engineStatus === 'ready' && state.config.SPEECH_MODE === 'rhvoice' && (
+          <Button disabled={busy} onClick={() => onSetupRuntime('rvc')} tone="text">
+            Установить дополнительно RVC
+          </Button>
+        )}
       </div>
-      {state.engineStatus === 'installing' && (
+      {state.engineStatus === 'installing' && !state.runtimeProgress && (
         <p className={styles.hint}>
           Компоненты занимают много места; загрузка CUDA/Python может занять время. Пользовательские голосовые модели
           не включаются в установщик.

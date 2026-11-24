@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import type { DesktopEngineStatus, SetupInput } from '../../../../electron/shared/contract';
+import type {
+  DesktopEngineStatus,
+  RuntimeProgress,
+  SetupInput,
+  SpeechMode,
+} from '../../../../electron/shared/contract';
 import { Button } from '../../../shared/ui/Button/Button';
 import styles from './FirstRunPage.module.scss';
 
@@ -10,8 +15,10 @@ interface FirstRunPageProps {
   twitchUsername: string;
   tokenConfigured: boolean;
   engineStatus: DesktopEngineStatus;
+  runtimeProgress?: RuntimeProgress;
+  speechMode: SpeechMode;
   statusMessage?: string;
-  onSetupRuntime: () => void;
+  onSetupRuntime: (mode: SpeechMode) => void;
   onSave: (input: SetupInput) => void;
 }
 
@@ -22,6 +29,8 @@ export function FirstRunPage({
   twitchUsername: initialUsername,
   tokenConfigured,
   engineStatus,
+  runtimeProgress,
+  speechMode: selectedMode,
   statusMessage,
   onSetupRuntime,
   onSave,
@@ -29,6 +38,7 @@ export function FirstRunPage({
   const [channel, setChannel] = useState(initialChannel);
   const [twitchUsername, setTwitchUsername] = useState(initialUsername);
   const [oauthToken, setOauthToken] = useState('');
+  const [speechMode, setSpeechMode] = useState<SpeechMode>(selectedMode);
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,21 +48,62 @@ export function FirstRunPage({
   return (
     <main className={styles.page}>
       <section className={styles.card}>
-        <div className={styles.icon}>Г</div>
+        <div className={styles.icon}>C</div>
         <p className={styles.eyebrow}>ПЕРВЫЙ ЗАПУСК</p>
         <h1>Подключим ваш Twitch</h1>
         <p className={styles.description}>
           Укажите канал, который нужно слушать, и данные аккаунта бота для подключения к чату.
         </p>
+        <section className={styles.runtime}>
+          <h2>Выберите движок озвучки</h2>
+          <label>
+            <input
+              type="radio"
+              name="speechMode"
+              checked={speechMode === 'rhvoice'}
+              disabled={busy}
+              onChange={() => setSpeechMode('rhvoice')}
+            />
+            <span><strong>Только RHVoice</strong><small>Меньше загрузка, работает без RVC и CUDA.</small></span>
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="speechMode"
+              checked={speechMode === 'rvc'}
+              disabled={busy}
+              onChange={() => setSpeechMode('rvc')}
+            />
+            <span><strong>RHVoice + RVC</strong><small>Нейроголоса, несколько гигабайт и NVIDIA GPU.</small></span>
+          </label>
+          <Button
+            disabled={
+              busy ||
+              engineStatus === 'installing' ||
+              (engineStatus === 'ready' && speechMode === selectedMode)
+            }
+            onClick={() => onSetupRuntime(speechMode)}
+            tone="primary"
+          >
+            {engineStatus === 'ready'
+              ? speechMode === selectedMode ? 'Движок готов' : 'Переключить движок'
+              : engineStatus === 'installing' ? 'Установка…' : 'Установить выбранный движок'}
+          </Button>
+          {runtimeProgress && (
+            <div className={styles.progress}>
+              <span>{runtimeProgress.phase}{runtimeProgress.percent !== null ? ` · ${runtimeProgress.percent}%` : ''}</span>
+              <progress max={100} {...(runtimeProgress.percent === null ? {} : { value: runtimeProgress.percent })} />
+            </div>
+          )}
+        </section>
         <p className={styles.privacy}>
-          Локальный движок: {engineStatus === 'installing' ? 'идёт автоматическая загрузка и настройка' : engineStatus === 'ready' ? 'готов' : engineStatus === 'error' ? 'ошибка установки' : 'будет установлен автоматически'}.
-          Первая установка требует интернета и нескольких гигабайт свободного места.
+          Первичная установка требует интернета. RHVoice-only не загружает RVC-модели и CUDA.
           {statusMessage && ` ${statusMessage}`}
         </p>
         {engineStatus === 'error' && (
           <div className={styles.error}>
             Не удалось подготовить локальный движок.
-            <Button disabled={busy} onClick={onSetupRuntime} size="small" tone="text">
+            <Button disabled={busy} onClick={() => onSetupRuntime(speechMode)} size="small" tone="text">
               Повторить установку
             </Button>
           </div>

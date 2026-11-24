@@ -1,7 +1,7 @@
 {
-  "name": "govorilkaclient",
-  "version": "1.0.0",
-  "description": "Windows desktop application for reading Twitch chat aloud",
+  "name": "chattospeech",
+  "version": "2.0.0",
+  "description": "ChatToSpeech — Windows desktop application for reading Twitch chat aloud",
   "main": "out/main/index.js",
   "scripts": {
     "app:dev": "electron-vite dev",
@@ -34,7 +34,7 @@
   },
   "build": {
     "appId": "com.govorilka.client",
-    "productName": "Govorilka",
+    "productName": "ChatToSpeech",
     "directories": {
       "output": "release"
     },
@@ -50,6 +50,10 @@
       {
         "from": "requirements-local.txt",
         "to": "requirements-local.txt"
+      },
+      {
+        "from": "requirements-rhvoice.txt",
+        "to": "requirements-rhvoice.txt"
       },
       {
         "from": "src/electron/main/runtime/rvc_worker.py",

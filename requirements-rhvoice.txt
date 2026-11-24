@@ -1,0 +1,5 @@
+numpy==2.3.5
+rhvoice-wrapper==0.8.0
+rhvoice-wrapper-bin==0.5.0
+rhvoice-wrapper-data==0.5.0
+soundfile==0.12.1
